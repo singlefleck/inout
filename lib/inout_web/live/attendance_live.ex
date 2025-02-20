@@ -38,7 +38,8 @@ defmodule InoutWeb.AttendanceLive do
         {:noreply, assign(socket, :registration_error, "Registration successful. Please log in.")}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :registration_error, "Registration failed: #{inspect(changeset.errors)}")}
+        {:noreply,
+         assign(socket, :registration_error, "Registration failed: #{inspect(changeset.errors)}")}
 
       _ ->
         {:noreply, assign(socket, :registration_error, "Unexpected error during registration.")}
@@ -52,6 +53,7 @@ defmodule InoutWeb.AttendanceLive do
     case Server.authenticate(employee_id, password) do
       {:ok, user} ->
         IO.inspect(user, label: "user")
+
         {:noreply,
          socket
          |> assign(:logged_in, true)
@@ -63,7 +65,6 @@ defmodule InoutWeb.AttendanceLive do
         {:noreply, assign(socket, :error, "Login failed: #{reason}")}
     end
   end
-
 
   ## Logout Event
   def handle_event("logout", _params, socket) do
@@ -88,7 +89,10 @@ defmodule InoutWeb.AttendanceLive do
   ## Update Attendance Logs
   defp update_attendance(socket) do
     logs = Server.get_attendance(socket.assigns.employee_id)
-    assign(socket, attendance_logs: Map.put(socket.assigns.attendance_logs, socket.assigns.employee_id, logs))
+
+    assign(socket,
+      attendance_logs: Map.put(socket.assigns.attendance_logs, socket.assigns.employee_id, logs)
+    )
   end
 
   ## Render Function
@@ -188,7 +192,6 @@ defmodule InoutWeb.AttendanceLive do
             </li>
           <% end %>
         </ul>
-
       <% else %>
         <h2>Login</h2>
         <%= if @error do %>

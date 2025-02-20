@@ -5,7 +5,11 @@ defmodule Inout.Login do
   schema "logins" do
     field :login_time, :utc_datetime
     field :logout_time, :utc_datetime
-    belongs_to :user, Inout.User, foreign_key: :employee_id, references: :employee_id, type: :string
+
+    belongs_to :user, Inout.User,
+      foreign_key: :employee_id,
+      references: :employee_id,
+      type: :string
 
     timestamps()
   end

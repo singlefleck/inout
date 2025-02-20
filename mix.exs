@@ -60,7 +60,6 @@ defmodule Inout.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
       {:timex, "~> 3.7.11"}
-
     ]
   end
 
