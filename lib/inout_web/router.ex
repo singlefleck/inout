@@ -18,7 +18,7 @@ defmodule InoutWeb.Router do
     pipe_through :browser
 
     live "/attendance", AttendanceLive, :index
-
+    live "/dashboard", DashboardLive
 
     get "/", PageController, :home
   end
