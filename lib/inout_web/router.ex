@@ -19,6 +19,7 @@ defmodule InoutWeb.Router do
 
     live "/attendance", AttendanceLive, :index
     live "/dashboard", DashboardLive
+    live "/teams/:id", TeamManagementLive, :show
 
     get "/", PageController, :home
   end

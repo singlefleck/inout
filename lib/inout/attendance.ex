@@ -1,6 +1,6 @@
 defmodule Inout.Server do
   use GenServer
-  alias Inout.{Repo, User, Leave, Team}
+  alias Inout.{Repo, User, Leave, Team, Login}
   import Ecto.Query
 
   @moduledoc """
@@ -69,7 +69,6 @@ defmodule Inout.Server do
     Repo.all(from t in Team, select: %{id: t.id, name: t.name})
   end
 
-
   @doc """
   Fetch last 10 login transactions.
   """
@@ -137,6 +136,18 @@ defmodule Inout.Server do
 
     Repo.all(query)
   end
+
+  def get_all_attendance do
+    Repo.all(
+      from l in Login,
+        select: %{
+          employee_id: l.employee_id,
+          login_time: l.login_time,
+          logout_time: l.logout_time
+        }
+    )
+  end
+
 
   @doc """
   Hours worked today.
@@ -232,11 +243,13 @@ defmodule Inout.Server do
   def get_members_on_leave_today do
     today = Date.utc_today()
 
-    query = from l in Leave,
-      join: u in User,
-      on: l.employee_id == u.employee_id,  # Ensure employee_id is used correctly
-      where: l.start_date <= ^today and l.end_date >= ^today and l.status == "approved",
-      select: %{employee_id: u.employee_id, reason: l.reason}
+    query =
+      from l in Leave,
+        join: u in User,
+        # Ensure employee_id is used correctly
+        on: l.employee_id == u.employee_id,
+        where: l.start_date <= ^today and l.end_date >= ^today and l.status == "approved",
+        select: %{employee_id: u.employee_id, reason: l.reason}
 
     Repo.all(query)
   end
@@ -247,23 +260,32 @@ defmodule Inout.Server do
     team_members = Repo.all(from u in User, where: u.team_id == ^team_id)
 
     # Get last 10 logins for the team
-    last_logins = Repo.all(
-      from l in Login,
-      where: l.team_id == ^team_id,
-      order_by: [desc: l.login_time],
-      limit: 10,
-      select: %{employee_id: l.employee_id, login_time: l.login_time, logout_time: l.logout_time}
-    )
+    last_logins =
+      Repo.all(
+        from l in Login,
+          where: l.team_id == ^team_id,
+          order_by: [desc: l.login_time],
+          limit: 10,
+          select: %{
+            employee_id: l.employee_id,
+            login_time: l.login_time,
+            logout_time: l.logout_time
+          }
+      )
 
     # Get members on leave today for this team
     today = Date.utc_today()
-    members_on_leave_today = Repo.all(
-      from l in Leave,
-      join: u in User,
-      on: l.employee_id == u.employee_id,
-      where: l.team_id == ^team_id and l.start_date <= ^today and l.end_date >= ^today and l.status == "approved",
-      select: %{employee_id: l.employee_id, reason: l.reason}
-    )
+
+    members_on_leave_today =
+      Repo.all(
+        from l in Leave,
+          join: u in User,
+          on: l.employee_id == u.employee_id,
+          where:
+            l.team_id == ^team_id and l.start_date <= ^today and l.end_date >= ^today and
+              l.status == "approved",
+          select: %{employee_id: l.employee_id, reason: l.reason}
+      )
 
     # Aggregate data for the team
     %{
@@ -272,4 +294,13 @@ defmodule Inout.Server do
       members_on_leave_today: members_on_leave_today
     }
   end
+
+  def get_total_employees() do
+    Repo.aggregate(User, :count, :id)
+  end
+
+  def get_teams_with_users do
+    Repo.all(from t in Team, preload: [:users])
+  end
+
 end
