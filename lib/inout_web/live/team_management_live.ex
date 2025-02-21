@@ -1,20 +1,27 @@
 defmodule InoutWeb.TeamManagementLive do
-  use Phoenix.LiveView
+  use Phoenix.LiveView, layout: {InoutWeb.SideLayout, :live}
   alias Inout.{Repo, Team, User}
+  alias InoutWeb.Router.Helpers, as: Routes
 
   @impl true
   def mount(%{"id" => team_id}, _session, socket) do
-    team = Repo.get(Team, team_id) |> Repo.preload(:users)
+    team_id = String.to_integer(team_id)
 
-    if team do
-      {:ok,
-       assign(socket,
-         team: team,
-         users: team.users,
-         changeset: Team.changeset(team, %{})
-       )}
-    else
-      {:halt, socket |> put_flash(:error, "Team not found.") |> push_redirect(to: "/dashboard")}
+    case Repo.get(Team, team_id) |> Repo.preload(:users) do
+      nil ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Team not found.")
+         |> push_redirect(to: Routes.dashboard_path(socket, :overview))
+        }
+
+      team ->
+        {:ok,
+         assign(socket,
+           team: team,
+           users: team.users,
+           changeset: Team.changeset(team, %{})
+         )}
     end
   end
 
@@ -39,16 +46,24 @@ defmodule InoutWeb.TeamManagementLive do
 
   @impl true
   def handle_event("remove_user", %{"user_id" => user_id}, socket) do
-    with user when not is_nil(user) <- Repo.get(User, user_id),
-         {:ok, _user} <- Repo.update(User.changeset(user, %{team_id: nil})) do
-      updated_users = Enum.reject(socket.assigns.users, fn u -> u.id == user.id end)
-      {:noreply,
-       socket
-       |> assign(:users, updated_users)
-       |> put_flash(:info, "User removed from the team.")}
-    else
-      nil -> {:noreply, put_flash(socket, :error, "User not found.")}
-      {:error, _changeset} -> {:noreply, put_flash(socket, :error, "Failed to remove user.")}
+    user = Repo.get(User, user_id)
+
+    cond do
+      is_nil(user) ->
+        {:noreply, put_flash(socket, :error, "User not found.")}
+
+      true ->
+        case Repo.update(User.changeset(user, %{team_id: nil})) do
+          {:ok, _user} ->
+            updated_users = Enum.reject(socket.assigns.users, fn u -> u.id == user.id end)
+            {:noreply,
+             socket
+             |> assign(:users, updated_users)
+             |> put_flash(:info, "User removed from the team.")}
+
+          {:error, _changeset} ->
+            {:noreply, put_flash(socket, :error, "Failed to remove user.")}
+        end
     end
   end
 
@@ -60,10 +75,7 @@ defmodule InoutWeb.TeamManagementLive do
 
       <!-- Flash Messages -->
       <%= for {type, msg} <- @flash do %>
-        <div class={[
-          "p-2 mb-4 rounded-lg",
-          flash_class(type)
-        ]}>
+        <div class={"p-2 mb-4 rounded-lg #{flash_class(type)}"}>
           <%= msg %>
         </div>
       <% end %>
@@ -74,7 +86,7 @@ defmodule InoutWeb.TeamManagementLive do
         <form phx-submit="update_team">
           <div class="mt-2">
             <label class="block text-sm font-medium">Team Name</label>
-            <input type="text" name="team[name]" value="<%= @team.name %>"
+            <input type="text" name="team[name]" value={@team.name}
                    class="w-full p-2 border rounded-lg" />
           </div>
 
@@ -101,7 +113,7 @@ defmodule InoutWeb.TeamManagementLive do
             <%= for user <- @users do %>
               <li class="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
                 <span><%= user.employee_id %></span>
-                <button phx-click="remove_user" phx-value-user_id="<%= user.id %>"
+                <button phx-click="remove_user" phx-value-user_id={user.id}
                         class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">
                   Remove
                 </button>

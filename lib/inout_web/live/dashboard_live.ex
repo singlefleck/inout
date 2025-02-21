@@ -1,12 +1,11 @@
 defmodule InoutWeb.DashboardLive do
-  use Phoenix.LiveView
+  use Phoenix.LiveView, layout: {InoutWeb.SideLayout, :live}
   import Phoenix.HTML
   alias Inout.Server
-  alias InoutWeb.Router.Helpers, as: Routes
 
-  # Hardcoded list of admin employee IDs
   @admin_ids ["d"]  # Replace with actual Admin employee IDs
 
+  @impl true
   def mount(params, session, socket) do
     employee_id = Map.get(session, "user_id") || Map.get(params, "user_id")
 
@@ -38,32 +37,18 @@ defmodule InoutWeb.DashboardLive do
     )
   end
 
+  # Single Handle Event for Navigation
+  @impl true
+  def handle_event("navigate", %{"path" => path}, socket) do
+    {:noreply, push_navigate(socket, to: path)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="flex h-screen bg-gray-100">
-      <aside class="w-64 bg-white shadow-md">
-        <div class="p-6 text-2xl font-bold text-purple-600">Admin Panel</div>
-        <nav class="mt-6">
-          <ul>
-            <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
-              Overview
-            </li>
-            <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
-              Manage Teams
-            </li>
-            <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
-              Manage Employees
-            </li>
-            <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
-              Reports
-            </li>
-            <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
-              Settings
-            </li>
-          </ul>
-        </nav>
-      </aside>
 
+      <!-- Main Content -->
       <div class="flex-1 flex flex-col">
         <main class="p-6 overflow-y-auto">
           <%= if @error do %>
@@ -89,7 +74,9 @@ defmodule InoutWeb.DashboardLive do
 
                       <%= if length(team.users) > 3 do %>
                         <li>
-                          <%= live_patch "View More...", to: Routes.live_path(@socket, InoutWeb.TeamManagementLive, team.id), class: "text-blue-500 cursor-pointer" %>
+                          <button phx-click="navigate" phx-value-path={"/teams/#{team.id}"} class="text-blue-500 cursor-pointer">
+                            View More...
+                          </button>
                         </li>
                       <% end %>
 

@@ -17,11 +17,15 @@ defmodule InoutWeb.Router do
   scope "/", InoutWeb do
     pipe_through :browser
 
-    live "/attendance", AttendanceLive, :index
-    live "/dashboard", DashboardLive
-    live "/teams/:id", TeamManagementLive, :show
 
-    get "/", PageController, :home
+    live "/", AttendanceLive, :index
+    live "/dashboard", DashboardLive, :overview
+live "/manage_employees", ManageEmployeesLive, :index
+live "/reports", ReportsLive, :index
+live "/settings", SettingsLive, :index
+live "/teams/:id", TeamManagementLive, :show
+live "/manage_teams", ManageTeamsLive, :index
+
   end
 
   # Other scopes may use custom stacks.
