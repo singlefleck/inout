@@ -1,16 +1,16 @@
 defmodule InoutWeb.AttendanceLive do
   use Phoenix.LiveView
   alias Inout.Server
+  alias Pow.Plug
 
   def mount(_params, session, socket) do
-    user_id = Map.get(session, "user_id", nil)
-    logged_in = !!user_id
+    user = Plug.current_user(socket)
 
-    if connected?(socket) && logged_in do
+    if connected?(socket) && user do
       {:ok,
        assign(socket,
          logged_in: true,
-         employee_id: user_id,
+         employee_id: user.employee_id,
          attendance_logs: %{},
          page: :dashboard,
          error: nil,
@@ -31,50 +31,6 @@ defmodule InoutWeb.AttendanceLive do
     end
   end
 
-  ## Registration Event
-  def handle_event("register", %{"employee_id" => employee_id, "password" => password}, socket) do
-    case Server.register_user(employee_id, password) do
-      {:ok, _user} ->
-        {:noreply, assign(socket, :registration_error, "Registration successful. Please log in.")}
-
-      {:error, changeset} ->
-        {:noreply,
-         assign(socket, :registration_error, "Registration failed: #{inspect(changeset.errors)}")}
-
-      _ ->
-        {:noreply, assign(socket, :registration_error, "Unexpected error during registration.")}
-    end
-  end
-
-  ## Login Event
-  def handle_event("login", %{"employee_id" => employee_id, "password" => password}, socket) do
-    IO.inspect(employee_id, label: "employee_id")
-
-    case Server.authenticate(employee_id, password) do
-      {:ok, user} ->
-        IO.inspect(user, label: "user")
-
-        {:noreply,
-         socket
-         |> assign(:logged_in, true)
-         |> assign(:employee_id, user.employee_id)
-         |> put_flash(:info, "Welcome, #{user.employee_id}!")
-         |> push_navigate(to: "/dashboard?user_id=#{user.employee_id}")}
-
-      {:error, reason} ->
-        {:noreply, assign(socket, :error, "Login failed: #{reason}")}
-    end
-  end
-
-  ## Logout Event
-  def handle_event("logout", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:logged_in, false)
-     |> assign(:employee_id, nil)
-     |> push_navigate(to: "/attendance")}
-  end
-
   ## Log Attendance
   def handle_event("log_in", _params, socket) do
     {:ok, _time} = Server.log_in(socket.assigns.employee_id)
@@ -84,6 +40,15 @@ defmodule InoutWeb.AttendanceLive do
   def handle_event("log_out", _params, socket) do
     {:ok, _time} = Server.log_out(socket.assigns.employee_id)
     {:noreply, update_attendance(socket)}
+  end
+
+  ## Logout Event
+  def handle_event("logout", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:logged_in, false)
+     |> assign(:employee_id, nil)
+     |> push_navigate(to: "/attendance")}
   end
 
   ## Update Attendance Logs
@@ -193,25 +158,16 @@ defmodule InoutWeb.AttendanceLive do
           <% end %>
         </ul>
       <% else %>
-        <h2>Login</h2>
-        <%= if @error do %>
-          <p class="error"><%= @error %></p>
-        <% end %>
-        <form phx-submit="login">
-          <input type="text" name="employee_id" placeholder="Employee ID" />
-          <input type="password" name="password" placeholder="Password" />
-          <button type="submit">Login</button>
-        </form>
+      <h2>Please Log In</h2>
+      <ul>
+        <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
+          <.link patch={Routes.pow_session_path(@conn, :new)} class="block">Login</.link>
+        </li>
+        <li class="px-4 py-2 hover:bg-gray-200 cursor-pointer">
+          <.link patch={Routes.pow_registration_path(@conn, :new)} class="block">Register</.link>
+        </li>
+      </ul>
 
-        <h2>Register</h2>
-        <%= if @registration_error do %>
-          <p class="error"><%= @registration_error %></p>
-        <% end %>
-        <form phx-submit="register">
-          <input type="text" name="employee_id" placeholder="Employee ID" />
-          <input type="password" name="password" placeholder="Password" />
-          <button type="submit">Register</button>
-        </form>
       <% end %>
     </div>
     """

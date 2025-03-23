@@ -18,3 +18,14 @@ config :logger, level: :info
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+config :inout, InoutWeb.Endpoint,
+  url: [host: "inout-app-name.herokuapp.com", port: 443],
+  adapter: Bandit.PhoenixAdapter,
+  cache_static_manifest: "priv/static/cache_manifest.json",
+  server: true,
+  render_errors: [
+    formats: [html: InoutWeb.ErrorHTML, json: InoutWeb.ErrorJSON],
+    layout: false
+  ],
+  pubsub_server: Inout.PubSub,
+  live_view: [signing_salt: System.get_env("SIGNING_SALT") || "27fnTTwX"]
